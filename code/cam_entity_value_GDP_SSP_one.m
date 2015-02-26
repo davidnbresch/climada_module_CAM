@@ -1,10 +1,13 @@
-function entity=climada_entity_value_GDP_adjust_one(entity,mode_selector)
+function entity=cam_entity_value_GDP_SSP_one(entity,mode_selector)
 % scale up asset values GDP
 % MODULE:
-%   country_risk
+%   CAM
 % NAME:
-%   climada_entity_value_GDP_adjust_one
+%   cam_entity_value_GDP_SSP_one
 % PURPOSE:
+%   A copy of the original climada_entity_value_GDP_adjust_one for the CAM
+%   module. Usually called from cam_entity_value_GDP_SSP
+%
 %   Scale up asset values based on a country's estimated total asset value.
 %   The total asset value is derived as follows:
 %       - normalize the asset values
@@ -44,9 +47,9 @@ function entity=climada_entity_value_GDP_adjust_one(entity,mode_selector)
 %   Prior calls: e.g. climada_nightlight_entity, country_risk_calc
 %   Next calls: e.g. country_risk_calc
 % CALLING SEQUENCE:
-%   entity_adjusted=climada_entity_value_GDP_adjust_one(entity,mode_selector)
+%   entity_adjusted=cam_entity_value_GDP_SSP_one(entity,mode_selector)
 % EXAMPLE:
-%   entity_adjusted=climada_entity_value_GDP_adjust_one(climada_entity_load)
+%   entity_adjusted=cam_entity_value_GDP_SSP_one(climada_entity_load)
 % INPUT:
 %   entity: an entity structure, see e.g. climada_entity_load and
 %       climada_entity_read
@@ -60,7 +63,7 @@ function entity=climada_entity_value_GDP_adjust_one(entity,mode_selector)
 %   entity_adjusted: entity with adjusted asset values, also stored as .mat
 %       file (only last entity if entity_file_regexp covers more than one)
 % MODIFICATION HISTORY:
-% David N. Bresch, david.bresch@gmail.com, 20150204, switched to one entity, see also climada_entity_value_GDP_adjust
+% David N. Bresch, david.bresch@gmail.com, 20150226, initial
 %-
 
 % set global variables and directories
@@ -71,6 +74,7 @@ if ~climada_init_vars,return;end % init/import global variables
 if ~exist('entity','var'),return;end
 if ~exist('mode_selector','var'),mode_selector=0;end
 
+fprintf('!!! WARNING: code NOT finished yet, contact david.bresch@gmail.com !!!\n');
 
 % PARAMETERS
 %
@@ -88,8 +92,8 @@ income_group_factors = [2 3 4 5];
 
 % Check if economic data file is available
 if ~exist(economic_data_file,'file')
-    fprintf('Error: economic_indicators_mastertable.xls is missing.\n')
-    fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_country_risk/tree/master/data">Climada country risk repository on Github\n</a>');
+    fprintf('Error: GDP information is missing.\n')
+    fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_CAM">CAM repository on Github\n</a>');
     return;
 end
 
@@ -200,13 +204,6 @@ if ~isempty(country_index)
         
         % for consistency, update Cover
         if isfield(entity.assets,'Cover'),entity.assets.Cover=entity.assets.Value;end
-        %             if isfield(entity.assets,'Cover')
-        %                 entity.assets.Cover=entity.assets.Cover*GDP_value*scale_up_factor*future_factor;
-        %                 Cover_pct=entity.assets.Cover./entity.assets.Value;
-        %                 if max(Cover_pct)<0.01
-        %                     fprintf('Warning: max Cover less than 1%% of Value -> consider to adjust Cover\n');
-        %                 end
-        %             end
         
     else
         msg_name='';
@@ -217,4 +214,4 @@ if ~isempty(country_index)
     
 end % ~isempty(country_index)
 
-end % climada_entity_value_GDP_adjust_one
+end % cam_entity_value_GDP_SSP_one

@@ -1,10 +1,13 @@
-function entity_adjusted=climada_entity_value_GDP_adjust(entity_file_regexp,mode_selector)
+function entity_adjusted=cam_entity_value_GDP_SSP(entity_file_regexp,mode_selector)
 % scale up asset values
 % MODULE:
-%   country_risk
+%   CAM
 % NAME:
-%   climada_entity_value_GDP_adjust
+%   cam_entity_value_GDP_SSP
 % PURPOSE:
+%   A copy of the original climada_entity_value_GDP_adjust for the CAM
+%   module. Calls cam_entity_value_GDP_SSP_one
+%
 %   Scale up asset values based on a country's estimated total asset value.
 %   The total asset value is derived as follows:
 %       - normalize the asset values
@@ -17,6 +20,9 @@ function entity_adjusted=climada_entity_value_GDP_adjust(entity_file_regexp,mode
 %   the factor to entity.assets.Value and applies this factor after GDP
 %   adjustment (this way, the code does not scale _future entities back to
 %   today).
+%
+%   If an entity ends with the filename _future.mat, the code assumes it to
+%   be a future entity, hence scales with projected GDP, rather than today.
 %
 %   The entities' asset values are first normalized and then
 %   multiplied by a factor that depends on a country's income group (low,
@@ -41,10 +47,10 @@ function entity_adjusted=climada_entity_value_GDP_adjust(entity_file_regexp,mode
 %   Prior calls: e.g. climada_nightlight_entity, country_risk_calc
 %   Next calls: e.g. country_risk_calc
 % CALLING SEQUENCE:
-%   entity_adjusted=climada_entity_value_GDP_adjust(entity_file_regexp,mode_selector)
+%   entity_adjusted=cam_entity_value_GDP_SSP(entity_file_regexp,mode_selector)
 % EXAMPLE:
-%   entity_adjusted=climada_entity_value_GDP_adjust('../data/*.mat') % put .. in
-%   entity_adjusted=climada_entity_value_GDP_adjust('BEL_Belgium_entity.mat')
+%   entity_adjusted=cam_entity_value_GDP_SSP('../data/*.mat') % put .. in
+%   entity_adjusted=cam_entity_value_GDP_SSP('BEL_Belgium_entity.mat')
 % INPUT:
 %   entity_file_regexp: the full filename of the entity to be scaled up
 %       or a regexp expression, e.g. for all entities:
@@ -59,11 +65,7 @@ function entity_adjusted=climada_entity_value_GDP_adjust(entity_file_regexp,mode
 %   entity_adjusted: entity with adjusted asset values, also stored as .mat
 %       file (only last entity if entity_file_regexp covers more than one)
 % MODIFICATION HISTORY:
-% Melanie Bieli, melanie.bieli@bluewin.ch, 20150121, initial
-% David N. Bresch, david.bresch@gmail.com, 20150121, cleanup
-% David N. Bresch, david.bresch@gmail.com, 20150122, mode_selector added
-% David N. Bresch, david.bresch@gmail.com, 20150122, mode_selector=3 added
-% David N. Bresch, david.bresch@gmail.com, 20150204, processing moved to climada_entity_value_GDP_adjust_one
+% David N. Bresch, david.bresch@gmail.com, 20150226, initial
 %-
 
 % initialize output
@@ -74,24 +76,13 @@ global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % check input
-if ~exist('entity_file_regexp','var'),entity_file_regexp='';end
-if ~exist('mode_selector','var'),      mode_selector      =0;end
+if ~exist('entity_file_regexp','var'), entity_file_regexp='';end
+if ~exist('mode_selector','var'),      mode_selector     = 0;end
 
+fprintf('!!! WARNING: code NOT finished yet, contact david.bresch@gmail.com !!!\n');
 
 % PARAMETERS
 %
-% the table with global GDP etc info (per country)
-economic_data_file=[climada_global.data_dir filesep 'system' filesep 'economic_indicators_mastertable.xls'];
-%
-% missing data indicator (any missing in Excel has this entry)
-misdat_value=-999;
-%
-% income group depending scale-up factors
-% we take the income group number (1..4) from the
-% economic_indicators_mastertable and use it as index to the
-% income_group_factors:
-income_group_factors = [2 3 4 5];
-
 
 % prompt for entity_file_regexp if not given
 if isempty(entity_file_regexp) % local GUI
@@ -126,4 +117,4 @@ for file_i=1:length(D_entity_mat)
     
 end % ~isempty(country_index)
 
-end % climada_entity_value_GDP_adjust
+end % cam_entity_value_GDP_SSP
