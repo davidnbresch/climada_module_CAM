@@ -1,0 +1,23 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1344\cocoasubrtf720
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720
+
+\f0\fs24 \cf0 this folder contains a test file for reading TC tracks from netCDF, \
+see climada_tc_read_cam_ibtrac_v02\
+\
+[tc_track,tc_track_hist_file]=climada_tc_read_cam_ibtrac_v02(ibtrac_file,check_plot)\
+\
+changes:\
+- the output consists of both the tc_track structure as well as the full filename with path of the .mat file tc_track is saved in (i.e. ../climada/data/tc_tracks/*_hist.mat)\
+- the wait bar progress update has been redone to allow for progress update to stdout (especially useful if no Xwindows).\
+\
+The main function calling climada_tc_read_cam_ibtrac_v02 is centroids_generate_hazard_sets\
+In there, I\'92ve changed such that climada_tc_read_cam_ibtrac_v02 is only called once (line 238).\
+\
+In order to use these (NCAR) netCDF tc_track data with core climada, please consider moving the *.nc files to the active core climada ..\\data\\tc_tracks folder. Modules such as country_risk will then pick them up and generate the hazard event sets also for the .nc track files. In case you\'92d like to skip climada generating hazard event sets for UNISYS track files, temporarily move the UNISYS track files (like .\\data\\tc_tracks\\tracks.atl.txt to a subfolder of .\\data\\tc_tracks, which is not considered).\
+\
+david.bresch@gmail.com, 2014\
+}
