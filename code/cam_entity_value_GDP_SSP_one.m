@@ -1,4 +1,4 @@
-function entity=cam_entity_value_GDP_SSP_one(entity,mode_selector)
+function [entity,ok]=cam_entity_value_GDP_SSP_one(entity,target_year,SSP_version)
 % scale up asset values GDP
 % MODULE:
 %   CAM
@@ -6,65 +6,53 @@ function entity=cam_entity_value_GDP_SSP_one(entity,mode_selector)
 %   cam_entity_value_GDP_SSP_one
 % PURPOSE:
 %   A copy of the original climada_entity_value_GDP_adjust_one for the CAM
-%   module. Usually called from cam_entity_value_GDP_SSP
+%   module. Usually called from cam_entity_value_GDP_SSP (which treats a
+%   series of entities)
 %
-%   Scale up asset values based on a country's estimated total asset value.
-%   The total asset value is derived as follows:
-%       - normalize the asset values
-%       - multiply with the country's GDP
-%       - multiply with a factor that depends on a country's income
-%         group, i.e., its GDP per capita. This last factor is the KEY
-%         ASSUMPTION here, see income_group_factors in PARAMETERS in code
+%   Scale up asset values based on a country's estimated total asset value,
+%   based on an SSP scenario (SSP_version) and for a target year.
 %
-%   See also climada_entity_value_GDP_adjust, which allows to process a
-%   series of entity .mat files
+%   We first normalize the asset values, then multiply by GDP*PPP*SCL, where
+%   - GDP comes from the SSP data file, either the Ssp3Db or Ssp5Db tab as
+%     specified by SSP_version and the column as specified by target_year
+%     (see SSP_data_file in PARAMETER section in code)
+%   - PPP, the purchase power parity conversion comes from tab "conversion
+%     rate" in SSP_data_file (in PARAMETER section in code)
+%   - SCL, the scale_up_factor based on income group comes from the core
+%     climada economic_data_file (see PARAMETER section in code)
 %
-%   If an entity has a field entity.assets.Value_today, the code calculates
-%   the factor to entity.assets.Value and applies this factor after GDP
-%   adjustment (this way, the code does not scale _future entities back to
-%   today).
+%   Caution: as soon as the entity has a field entity.assets.admin0_ISO3
 %
-%   The entities' asset values are first normalized and then
-%   multiplied by a factor that depends on a country's income group (low,
-%   lower middle, upper middle, or high). The choice of this factor is
-%   based on a comparison of climada entities to estimates for total asset
-%   values in countries where such data are available. This comparison
-%   showed that in general, adjusting the Climada asset values requires a
-%   higher multiplication factor the wealthier a country is. Thus, as a
-%   rule of thumb, the value of all assets in a country can be estimated by
-%       Total_asset_value = GDP * (1+income_group_factor)
-%   where GDP is the country's gross domestic product, and
-%   income_group_factor ranges from 2 for low income countries to 5 for
-%   high income countries.
-%
-%   Caution: as soon as the entity has a field entity.assets.admin0_ISO3 or
-%   entity.assets.admin0_name, it is adjusted, unless there are non-empty
-%   fields entity.assets.admin1_name or entity.assets.admin1_code, in which
-%   case it skips adjustment.
-%
-%   Note: to avoid any troubles, Cover is set equal to Value.
+%   Note: to avoid any troubles, entity.assets.Cover is set equal to entity.assets.Value
 %
 %   Prior calls: e.g. climada_nightlight_entity, country_risk_calc
 %   Next calls: e.g. country_risk_calc
 % CALLING SEQUENCE:
-%   entity_adjusted=cam_entity_value_GDP_SSP_one(entity,mode_selector)
+%   entity=cam_entity_value_GDP_SSP_one(entity,target_year,SSP_version)
 % EXAMPLE:
-%   entity_adjusted=cam_entity_value_GDP_SSP_one(climada_entity_load)
+%   entity=cam_entity_value_GDP_SSP_one(entity,2035,'Ssp3Db')
 % INPUT:
 %   entity: an entity structure, see e.g. climada_entity_load and
 %       climada_entity_read
 % OPTIONAL INPUT PARAMETERS:
-%   mode_selector: =1, print step-by-step to stdout, =0, not (default)
-%       If =2, do not care for Value_today, just adjust to GDP*income_group_factors
-%       If =3, use GDP_future instead of GDP_today (if this column is in
-%       the economic_indicators_mastertable.xls, otherwise throw an error).
-%       In this case, ignore Value_today, just scale with GDP_future.
+%   target_year: the year we would like to get the GDP estimates for
+%       Default=2035, see SSP data file for possible years
+%   SSP_version: the SSP 3 or 5, hence either 'Ssp3Db' or 'Ssp5Db'. In fact
+%       this is the name of the tab within the Excel file we read, hence the
+%       user could also define a new one. Default 'Ssp3Db'
 % OUTPUTS:
-%   entity_adjusted: entity with adjusted asset values, also stored as .mat
-%       file (only last entity if entity_file_regexp covers more than one)
+%   entity: on output the entity as on inpit, with adjusted asset values,
+%       i.e. the sum(entity.assets.Value) now equals GDP*PPP*SCL
+%       The print statement to stdout does list the factors and states the
+%       matching ISO3 code for security checks, i.e. would they not all be
+%       the same (the requested country), there might either be double
+%       entries in tables or problems elsewhere.
+%   ok: =1, if successfully scaled, =0 if not
 % MODIFICATION HISTORY:
-% David N. Bresch, david.bresch@gmail.com, 20150226, initial
+% David N. Bresch, david.bresch@gmail.com, 20150227, initial
 %-
+
+ok=0;
 
 % set global variables and directories
 global climada_global
@@ -72,13 +60,19 @@ if ~climada_init_vars,return;end % init/import global variables
 
 % check input
 if ~exist('entity','var'),return;end
-if ~exist('mode_selector','var'),mode_selector=0;end
+if ~exist('target_year','var'),target_year=2035;end
+if ~exist('SSP_version','var'),SSP_version='Ssp3Db';end
 
-fprintf('!!! WARNING: code NOT finished yet, contact david.bresch@gmail.com !!!\n');
+module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 
 % PARAMETERS
 %
-% the table with global GDP etc info (per country)
+% the table with SSP data (per country)
+% NOTE that GDP data in this file is in billion USD, hence we multiply by 1e9
+SSP_data_file=[module_data_dir filesep 'SSP_country_data_2013-06-12_OECDonly.xls'];
+%
+% the table with global GDP and income group info (per country)
+% here, we only need income group from this file, as we use GDP from SSP_data_file
 economic_data_file=[climada_global.data_dir filesep 'system' filesep 'economic_indicators_mastertable.xls'];
 %
 % missing data indicator (any missing in Excel has this entry)
@@ -91,10 +85,38 @@ misdat_value=-999;
 income_group_factors = [2 3 4 5];
 
 % Check if economic data file is available
-if ~exist(economic_data_file,'file')
-    fprintf('Error: GDP information is missing.\n')
-    fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_CAM">CAM repository on Github\n</a>');
+if ~exist(SSP_data_file,'file')
+    fprintf('Error: SSP information is missing.\n')
+    fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada_module_CAM">CAM repository on GitHub\n</a>');
     return;
+end
+
+if ~exist(economic_data_file,'file')
+    fprintf('Error: income group information is missing.\n')
+    fprintf('Please download it from the <a href="https://github.com/davidnbresch/climada">core climada repository on GitHub\n</a>');
+    return;
+end
+
+% Read SSP data
+[fP,fN]=fileparts(SSP_data_file);
+SSP_data_file_mat=[fP filesep fN '.mat'];
+if ~climada_check_matfile(SSP_data_file,SSP_data_file_mat)
+    SSP_data.Ssp3Db = climada_xlsread('no',SSP_data_file,'Ssp3Db',1,misdat_value);
+    SSP_data.Ssp5Db = climada_xlsread('no',SSP_data_file,'Ssp5Db',1,misdat_value);
+    SSP_data.conversion_rates = climada_xlsread('no',SSP_data_file,'conversion_rates',1,misdat_value);
+    fprintf('saving SSP data as %s\n',SSP_data_file_mat);
+    save(SSP_data_file_mat,'SSP_data');
+else
+    load(SSP_data_file_mat);
+end
+
+% get the GDP for the target year (since column headers contain year)
+fieldname=sprintf('VAL%i',target_year);
+if isfield(SSP_data.(SSP_version),fieldname)
+    SSP_data_GDP=SSP_data.(SSP_version).(fieldname)*1e9;
+else
+    fprintf(' skipped (no SSP data for year %i): %s\n',target_year,entity.assets.filename);
+    return
 end
 
 % Read economic data
@@ -109,109 +131,64 @@ else
 end
 
 if isfield(entity.assets,'admin0_ISO3')
-    country_index = find(strcmp(econ_master_data.ISO3,char(entity.assets.admin0_ISO3)));
-    if isempty(country_index),fprintf('skipped (no admin0_ISO3 match): %s\n',D_entity_mat(file_i).name);end
-elseif isfield(entity.assets,'admin0_name')
-    country_index = find(strcmp(econ_master_data.Country,char(entity.assets.admin0_name)));
-    if isempty(country_index),fprintf('skipped (no admin0_name match): %s\n',D_entity_mat(file_i).name);end
+    admin0_ISO3=char(entity.assets.admin0_ISO3);
+    gdp_country_index = find(strcmp(SSP_data.(SSP_version).REGION,admin0_ISO3));
+    if isempty(gdp_country_index)
+        fprintf(' skipped (no admin0_ISO3/GDP match): %s, %s\n',admin0_ISO3,entity.assets.filename);
+        return
+    else
+        GDP_value=SSP_data_GDP(gdp_country_index);
+    end
+    cnv_country_index = find(strcmp(SSP_data.conversion_rates.REGION,admin0_ISO3));
+    if isempty(cnv_country_index)
+        fprintf(' skipped (no admin0_ISO3/conversion rate match): %s, %s\n',admin0_ISO3,entity.assets.filename);
+        return
+    else
+        conversion_rate=SSP_data.conversion_rates.conversion_rate(cnv_country_index);
+    end
+    scl_country_index = find(strcmp(econ_master_data.ISO3,admin0_ISO3));
+    if isempty(scl_country_index)
+        fprintf(' skipped (no admin0_ISO3/scale up match): %s, %s\n',admin0_ISO3,entity.assets.filename);
+        return
+    else
+        scale_up_factor = income_group_factors(econ_master_data.income_group(scl_country_index));
+    end
 else
-    fprintf('skipped (no admin0_ISO3 nor admin0_name): %s\n',D_entity_mat(file_i).name);
-    country_index=[];
+    fprintf(' skipped (no admin0_ISO3): %s\n',entity.assets.filename);
+    return
 end
 
-if ~isempty(country_index)
-    % avoid treating entities on admin1 level
-    admin1_message=1; % to suppress 2nd message in case both admin1_name and admin1_code are non-empty
-    if isfield(entity.assets,'admin1_name')
-        if ~isempty(entity.assets.admin1_name)
-            country_index=[];
-            fprintf('skipped (admin1_name not empty): %s\n',D_entity_mat(file_i).name);
-            admin1_message=0;
-        end
-    end
-    if isfield(entity.assets,'admin1_code')
-        if ~isempty(entity.assets.admin1_code)
-            country_index=[];
-            if admin1_message,fprintf('skipped (admin1_code not empty): %s\n',D_entity_mat(file_i).name);end
-        end
-    end
-end % ~isempty(country_index)
+% double check (to really avpid messing numbers up)
+test_str=char(SSP_data.(SSP_version).REGION{gdp_country_index});
+if ~strcmp(test_str,admin0_ISO3)
+    fprintf(' WARNING: GDP REGION mismatch (%s <> %s)\n',test_str,admin0_ISO3)
+end
+test_str=char(SSP_data.conversion_rates.REGION{cnv_country_index});
+if ~strcmp(test_str,admin0_ISO3)
+    fprintf(' WARNING: conversion REGION mismatch (%s <> %s)\n',test_str,admin0_ISO3)
+end
+test_str=char(econ_master_data.ISO3{scl_country_index});
+if ~strcmp(test_str,admin0_ISO3)
+    fprintf(' WARNING: scale up ISO3 mismatch (%s <> %s)\n',test_str,admin0_ISO3)
+end
 
-if ~isempty(country_index)
+if (~isnan(scale_up_factor) && ~isnan(GDP_value)) && ~isnan(conversion_rate)
     
-    if ~isnan(econ_master_data.income_group(country_index))
-        
-        if isfield(entity.assets,'Value_today')
-            % aha, it's a _future entity
-            sum_Value_today =sum(entity.assets.Value_today);
-            sum_Value_future=sum(entity.assets.Value);
-            future_factor=sum_Value_future/sum_Value_today;
-            
-            if mode_selector>1,future_factor=1.0;end
-            
-            if abs(future_factor-1)>0.051; % 5 percent tolerance
-                % if factor equals one, do it silenty
-                fprintf('future values scaled up by %f*today (it has Value_today)\n',future_factor);
-            else
-                future_factor=1.0; % force the same, as we ignore up to 5% difference
-            end
-            
-            if mode_selector,fprintf('future_factor: %f\n',future_factor);end
-            
-        else
-            future_factor=1;
-        end
-        
-        scale_up_factor = income_group_factors(econ_master_data.income_group(country_index));
-        
-        if mode_selector,fprintf('sum(value) as on file: %g\n',sum(entity.assets.Value));end
-        
-        % normalize assets
-        entity.assets.Value = entity.assets.Value/sum(entity.assets.Value);
-        
-        if mode_selector==3
-            if ~isfield(econ_master_data,'GDP_future')
-                fprintf('Error: no GDP_future in %s, aborted\n',economic_data_file);
-                return
-            else
-                GDP_value=econ_master_data.GDP_future(country_index);
-            end
-        else
-            GDP_value=econ_master_data.GDP_today(country_index);
-        end
-        
-        if isnan(GDP_value)
-            GDP_value=1.0;
-            scale_up_factor=1.0; % in this case makes also no sense
-            fprintf('Warning: GDP=NaN, not applied\n');
-        else
-            if mode_selector,fprintf('GDP: %g, scale_up_factor: %f\n',GDP_value,scale_up_factor);end
-        end
-        
-        % multiply with GDP
-        entity.assets.Value = entity.assets.Value*GDP_value;
-        
-        % multiply with scale-up factor
-        entity.assets.Value = entity.assets.Value*scale_up_factor;
-        
-        % special treatment for future entities
-        if isfield(entity.assets,'Value_today'),entity.assets.Value_today=entity.assets.Value;end
-        
-        % and finally apply future factor (in case it's a _future entity)
-        entity.assets.Value = entity.assets.Value*future_factor;
-        
-        if mode_selector,fprintf('sum(value) after scaling: %g\n',sum(entity.assets.Value));end
-        
-        % for consistency, update Cover
-        if isfield(entity.assets,'Cover'),entity.assets.Cover=entity.assets.Value;end
-        
-    else
-        msg_name='';
-        if isfield(entity.assets,'admin0_ISO3'),msg_name=entity.assets.admin0_ISO3;end
-        if isfield(entity.assets,'admin0_name'),msg_name=entity.assets.admin0_name;end
-        fprintf('skipped (no income group info): %s\n',msg_name);
-    end
+    % normalize assets
+    entity.assets.Value = entity.assets.Value/sum(entity.assets.Value);
     
-end % ~isempty(country_index)
+    % scale up
+    entity.assets.Value = entity.assets.Value*GDP_value*conversion_rate*scale_up_factor;
+    
+    % for consistency, update Cover
+    if isfield(entity.assets,'Cover'),entity.assets.Cover=entity.assets.Value;end
+    
+    msg_str=' ';ok=1;
+else
+    msg_str='WARNING - not scaled ';
+end
+    
+fprintf('%s%s: GDP %g, conversion %f, scale_up_factor %2.2f, year %i, (%s)\n',...
+    msg_str,admin0_ISO3,GDP_value,conversion_rate,scale_up_factor,target_year,entity.assets.filename);
 
 end % cam_entity_value_GDP_SSP_one
