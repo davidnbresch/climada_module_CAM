@@ -16,12 +16,17 @@
 %   - subsequent calls just repeat the damage calculations (unless you set
 %     country_risk_calc_force_recalc=1). Thus if you repeat the second step,
 %     since all hazard sets are stored, it will be fast and easy to play with
-%     parameters (e.g. damage functions). 
+%     parameters (e.g. damage functions).
 %
 %   SPECIAL: in order to process CAM files only, the global variable
 %   climada_global.tc.default_raw_data_ext is set to '.nc' to avoid
 %   processing the UNISYS ('.txt') files in tc_track, see also code
 %   centroids_generate_hazard_sets
+%
+%   In order to TEST this code before having all the netCDF track files
+%   ready, just set climada_global.tc.default_raw_data_ext='.txt', which
+%   runs all using UNISYS track data - and produces kind of comparison
+%   results.
 %
 %   run as a batch code, such that all is available on command line, all
 %   PARAMETERS are set in this file, see section below
@@ -38,7 +43,10 @@
 % David N. Bresch, david.bresch@gmail.com, 20150203, initial (on ICE to Paris)
 % David N. Bresch, david.bresch@gmail.com, 20150206, tested, ok
 % David N. Bresch, david.bresch@gmail.com, 20150228, tested including asset scaling, ok
+% David N. Bresch, david.bresch@gmail.com, 20150301, country liost reduced to SSP listed ones
 %-
+
+country_risk=[]; % even we're in a batch code, make sure we start fresh
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
@@ -53,8 +61,12 @@ if ~climada_init_vars,return;end % init/import global variables
 % centroids_generate_hazard_sets)
 peril_ID='TC'; % default='TC'
 %
-%climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
+climada_global.tc.default_raw_data_ext='.nc'; % to restrict to netCDF TC track files
 climada_global.tc.default_raw_data_ext='.txt'; % to restrict to UNISYS TC track files
+%
+% the future year we use SSP GDP data for, possible are 2000:5:2100 (i.e. every 5 years)
+% all *entity_future assets will be scaled with, see cam_entity_value_GDP_SSP
+future_target_year=2035;
 %
 % to check for climada-conformity of country names
 check_country_names=0; % default=0, if=1, stops after check
@@ -79,12 +91,12 @@ country_risk_results_mat_file=[climada_global.data_dir filesep 'results' filesep
 damage_report_filename=[climada_global.data_dir filesep 'results' filesep 'CAM_country_risk_report.xls'];
 %
 % whether we plot all the global damage frequency curves
-plot_global_DFC=1; % WARNING: needs a X-windows server or the like
+plot_global_DFC=0; % WARNING: needs a X-windows server or the like
 plot_max_RP=500; % the maxium RP we show (to zoom in a bit)
 %
 % the explicit list of countires we'd like to process
 % see climada_country_name('ALL'); to obtain it. The ones either not TC
-% exposed or otherwise not needed are just commented out 
+% exposed or otherwise not needed are just commented out
 country_list={
     %'Afghanistan'
     %'Akrotiri'
@@ -94,12 +106,12 @@ country_list={
     %'American Samoa'
     %'Andorra'
     %'Angola'
-    'Anguilla'
+    %'Anguilla'
     %'Antarctica'
-    'Antigua and Barbuda'
+    %'Antigua and Barbuda'
     %'Argentina'
     %'Armenia'
-    'Aruba'
+    %'Aruba'
     %'Ashmore and Cartier Islands'
     'Australia'
     %'Austria'
@@ -121,7 +133,7 @@ country_list={
     %'Botswana'
     %'Brazil'
     %'British Indian Ocean Territory'
-    'British Virgin Islands'
+    %'British Virgin Islands'
     %'Brunei'
     %'Bulgaria'
     %'Burkina Faso'
@@ -130,7 +142,7 @@ country_list={
     %'Cameroon'
     %'Canada'
     %'Cape Verde'
-    'Cayman Islands'
+    %'Cayman Islands'
     %'Central African Republic'
     %'Chad'
     %'Chile'
@@ -144,7 +156,7 @@ country_list={
     'Costa Rica'
     %'Cote dIvoire'
     %'Croatia'
-    'Cuba'
+    %'Cuba'
     %'Curacao' % NOT supported in climada_create_GDP_entity
     %'Cyprus'
     %'Cyprus UN Buffer Zone'
@@ -153,7 +165,7 @@ country_list={
     %'Denmark'
     %'Dhekelia'
     %'Djibouti'
-    'Dominica'
+    %'Dominica'
     'Dominican Republic'
     %'Ecuador'
     %'Egypt'
@@ -177,8 +189,8 @@ country_list={
     %'Gibraltar'
     %'Greece'
     %'Greenland'
-    'Grenada'
-    'Guam'
+    %'Grenada'
+    %'Guam'
     'Guatemala'
     %'Guernsey'
     %'Guinea'
@@ -205,7 +217,7 @@ country_list={
     %'Jordan'
     %'Kazakhstan'
     %'Kenya'
-    'Kiribati'
+    %'Kiribati'
     'Korea'
     %'Kosovo'
     %'Kuwait'
@@ -227,24 +239,24 @@ country_list={
     %'Maldives' % NOT supported in climada_create_GDP_entity
     %'Mali'
     %'Malta'
-    'Marshall Islands'
+    %'Marshall Islands'
     %'Mauritania'
     'Mauritius'
     'Mexico'
-    'Micronesia'
+    %'Micronesia'
     %'Moldova'
     %'Monaco'
     %'Mongolia'
     %'Montenegro' % NOT supported in climada_create_GDP_entity
-    'Montserrat'
+    %'Montserrat'
     %'Morocco'
     'Mozambique'
     'Myanmar'
     %'Namibia'
-    'Nauru'
+    %'Nauru'
     %'Nepal'
     %'Netherlands'
-    'New Caledonia'
+    %'New Caledonia'
     'New Zealand'
     'Nicaragua'
     %'Niger'
@@ -253,40 +265,40 @@ country_list={
     %'Norfolk Island'
     %'North Cyprus'
     %'North Korea'
-    'Northern Mariana Islands'
+    %'Northern Mariana Islands'
     %'Norway'
     %'Oman'
     'Pakistan'
-    'Palau'
+    %'Palau'
     %'Palestine'
     'Panama'
     'Papua New Guinea'
     %'Paraguay'
     %'Peru'
     'Philippines'
-    'Pitcairn Islands'
+    %'Pitcairn Islands'
     %'Poland'
     %'Portugal'
-    'Puerto Rico'
+    %'Puerto Rico' % no
     %'Qatar'
     %'Romania'
     %'Russia'
     %'Rwanda'
-    'Saint Helena'
-    'Saint Kitts and Nevis'
+    %'Saint Helena'
+    %'Saint Kitts and Nevis'
     'Saint Lucia'
     %'Saint Martin' % NOT supported in climada_create_GDP_entity
-    'Saint Pierre and Miquelon'
+    %'Saint Pierre and Miquelon'
     'Saint Vincent and the Grenadines'
-    'Samoa'
+    %'Samoa'
     %'San Marino'
-    'Sao Tome and Principe'
+    %'Sao Tome and Principe'
     %'Saudi Arabia'
     %'Scarborough Reef'
     %'Senegal'
     %'Serbia'
     %'Serranilla Bank'
-    'Seychelles'
+    %'Seychelles'
     %'Siachen Glacier'
     %'Sierra Leone'
     'Singapore'
@@ -297,7 +309,7 @@ country_list={
     %'Somalia'
     %'Somaliland'
     %'South Africa'
-    'South Georgia and South Sandwich Islands'
+    %'South Georgia and South Sandwich Islands'
     %'South Sudan'
     %'Spain'
     %'Spratly Islands' % NOT supported in climada_create_GDP_entity
@@ -320,10 +332,10 @@ country_list={
     %'Tunisia'
     %'Turkey'
     %'Turkmenistan'
-    'Turks and Caicos Islands'
-    'Tuvalu'
+    %'Turks and Caicos Islands'
+    %'Tuvalu'
     %'US Minor Outlying Islands' % NOT supported in climada_create_GDP_entity (even an error)
-    'US Virgin Islands'
+    %'US Virgin Islands'
     %'USNB Guantanamo Bay'
     %'Uganda'
     %'Ukraine'
@@ -386,12 +398,25 @@ if check_country_names
     return
 end
 
-% next lines is called twice (see further below) as on first call, we
-% create all entities and hazard event sets, then scale asset valuea, then
-% repeat damage calculation (just to illustrate, the experienced user will
-% only run what he/she needs ;-)
-% create entities, hazard sets and calculate damage on admin0 (country) level
-country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID);
+all_entities_exist=1;
+for country_i=1:length(country_list)
+    [country_name,country_ISO3,shape_index] = climada_country_name(country_list{country_i});
+    entity_file=       [climada_global.data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name,' ','') '_entity.mat'];
+    entity_future_file=[climada_global.data_dir filesep 'entities' filesep country_ISO3 '_' strrep(country_name,' ','') '_entity_future.mat'];
+    if ~exist(entity_file,'file'),all_entities_exist=0;end
+    if ~exist(entity_future_file,'file'),all_entities_exist=0;end    
+end % country_i
+
+if ~all_entities_exist
+    % next lines is called twice (see further below) as on first call, we
+    % create all entities and hazard event sets, then scale asset valuea, then
+    % repeat damage calculation (just to illustrate, the experienced user will
+    % only run what he/she needs ;-)
+    % create entities, hazard sets and calculate damage on admin0 (country) level
+    country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID);
+else
+    fprintf('Note: ok, all entities exist, we skip first entity and hazard generation loop\n');
+end
 
 % country_risk now contains the results based on climada's GDP-based asset
 % estimates, now adjust for CAM:
@@ -400,10 +425,10 @@ country_risk=country_risk_calc(country_list,country_risk_calc_method,country_ris
 cam_entity_value_GDP_SSP('*_*_entity.mat',2015); % all today for 2015
 
 % adjust asset value of all future assets
-cam_entity_value_GDP_SSP('*_future.mat',2035) % all future for 2035
+cam_entity_value_GDP_SSP('*_future.mat',future_target_year); % all future
 
 % calculate damage on admin0 (country) level
-country_risk=country_risk_calc(country_list,country_risk_calc_method,country_risk_calc_force_recalc,0,peril_ID);
+country_risk=country_risk_calc(country_list,country_risk_calc_method,0,0,peril_ID);
 
 % next line allows to combine sub-perils, such as wind (TC) and surge (TS)
 % EDC is the maximally combined EDS, i.e. only one fully combined EDS per
@@ -442,8 +467,8 @@ if ~isempty(damage_report_filename)
 end % generate_damage_report
 
 if plot_global_DFC
-   
-   % cr_DFC_plot(country_risk); each single country
-   cr_DFC_plot_aggregate(country_risk,[],[],0); % save image, do NOT plot
+    
+    % cr_DFC_plot(country_risk); each single country
+    cr_DFC_plot_aggregate(country_risk,[],[],0); % save image, do NOT plot
     
 end % plot_global_DFC
