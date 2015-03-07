@@ -25,7 +25,7 @@ function cam_calibrate(method,entity_file,hazard)
 %   country_risk_calc('USA',-3) % only in case you do not have an entity and hazard set already
 %   cam_calibrate(0,'USA') % check USA
 %   cam_calibrate(1,'JPN') % check and save Japan
-%   cam_calibrate(2,'USA') % calibrate all entities
+%   cam_calibrate(2,'USA','TC') % calibrate all entities
 % INPUTS:
 %   method: =0 (default), run the calibration for the country as in the entity,
 %       show results, but do NOT update the damagefunction in the entity
@@ -35,6 +35,7 @@ function cam_calibrate(method,entity_file,hazard)
 %       (use method=0 for this)
 %       =2: update the damagefunctions in ALL entities. BE CAREFUL, this
 %       truly OVERWRITES the damagefunctions in ALL entities.
+%       If run without Xwindows, please pass hazard='TC' in this case
 % OPTIONAL INPUT PARAMETERS:
 %   entity_file: the entity file with assets (today) to be used for calibration
 %       OR just the 3-digit country code, such as 'USA' - in this case, the
@@ -112,7 +113,11 @@ end
 
 if ~isstruct(hazard) % load the hazard, if a filename has been passed
     hazard_file=hazard;hazard=[];
+    if exist(hazard_file,'file')
     load(hazard_file); % contains hazard
+    else
+        hazard.peril_ID=hazard_file; % we only need the peril_ID
+    end
 end
 
 country_name=entity.assets.admin0_name;
