@@ -1,2 +1,10 @@
 
 data/SSP_country_data_2013-06-12_OECDonly.mat
+
+data/hazards/USA_cont_Allstorms_ibtracs_all_v03r04_tracfile_TC.mat
+
+data/hazards/USA_cont_f_e12_FAMIPC5_ne120_g16_rcp4_5_001_10m_tracfile_TC.mat
+
+data/hazards/USA_cont_f_e12_FAMIPC5_ne120_g16_rcp4_5_001_10m_tracfile_TC.mat
+
+data/hazards/USA_cont_f_e13_FAMIPC5_ne120_ne120_1979_2012_001_tracfile_TC.mat
