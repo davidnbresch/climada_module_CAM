@@ -43,7 +43,9 @@ if show_plot,fig_visible='on';else fig_visible='off';end
 
 % use a local data dir (for david only)
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
-if ~exist('module_data_dir','var'),module_data_dir=climada_global.data_dir;end % default
+module_data_dir=strrep(module_data_dir,'CAM','_CAM'); % local version
+% otherwise, use standard climada
+if ~exist(module_data_dir,'file'),module_data_dir=climada_global.data_dir;end % default
 
 % prompt for entity_filename if not given
 if isempty(hazard_set_file) % local GUI
