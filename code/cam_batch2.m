@@ -18,6 +18,7 @@ function cam_batch2(basin_number,cam_dataset)
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % Andrew Gettelman May 5 2014: based on cam_batch.m  code for original (2012) climada
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir
 %-
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
@@ -31,11 +32,10 @@ cam_dataset='present_day';
 hazard_dir=[climada_global.root_dir filesep 'data' filesep 'hazards'];
 results_dir=[climada_global.root_dir filesep 'data' filesep 'results'];
 entity_dir=[climada_global.root_dir filesep 'data' filesep 'entities'];
-system_dir=[climada_global.root_dir filesep 'data' filesep 'system'];
 cam_data_dir=[climada_global.modules_dir filesep 'CAM'  filesep 'data' filesep 'track_data_ibtrac' filesep cam_dataset];
 %cam_data_dir=[climada_global.modules_dir filesep 'CAM'  filesep 'data' filesep 'track_data_V01' filesep cam_dataset];
 cam_tc_track_dir=[climada_global.modules_dir filesep 'CAM' filesep 'data' filesep 'tc_tracks' filesep cam_dataset];
-cam_tc_track_file=[climada_global.modules_dir filesep 'CAM' filesep 'data' filesep 'tc_tracks' filesep cam_dataset filesep 'tc_track_cam.mat'];
+cam_tc_track_file=[cam_tc_track_dir filesep 'tc_track_cam.mat'];
 
 %%% CAM TC TRACKS (calculate or read) %%%
 
@@ -61,8 +61,10 @@ tc_track_prob=climada_tc_random_walk(tc_track,basin);
 
 %%% Generate Hazard Set and Statistics %%%
 
+% prepare centroids
+centroids=climada_centroids_read([climada_global.centroids_dir filesep 'USFL_MiamiDadeBrowardPalmBeach_centroids.xls']);
+
 hazard_set_file=[hazard_dir filesep hazname '_hazard_' cam_dataset '.mat'];
-centroids=[system_dir filesep 'USFL_MiamiDadeBrowardPalmBeach_centroids.mat'];
 
 hazard_prob=climada_tc_hazard_set(tc_track_prob,hazard_set_file,centroids);
 climada_hazard_stats(hazard_prob);  % Makes a plot
