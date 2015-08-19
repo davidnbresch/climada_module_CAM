@@ -17,7 +17,9 @@ function cam_batch_multi(basin_number)
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % Andrew Gettelman  May 5, 2014
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
+
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
@@ -31,10 +33,9 @@ hazname='TCNA';
 cam_dataset='rcp85'    
 
 hazard_dir=[climada_global.root_dir filesep 'data' filesep 'hazards'];
-system_dir=[climada_global.root_dir filesep 'data' filesep 'system'];
 cam_data_dir=[climada_global.root_dir '_additional' filesep 'CAM'  filesep 'data' filesep 'track_data_V01' filesep cam_dataset];
 cam_tc_track_dir=[climada_global.root_dir '_additional' filesep 'data' filesep 'tc_tracks' filesep cam_dataset];
-cam_tc_track_file=[climada_global.root_dir '_additional' filesep 'data' filesep 'tc_tracks' filesep cam_dataset filesep 'tc_track_cam.mat'];
+cam_tc_track_file=[cam_tc_track_dir filesep 'tc_track_cam.mat'];
 if ~exist(cam_tc_track_file,'file')
     % read raw CAM data and store as tc_track structure
     % Track file generation.
@@ -48,7 +49,7 @@ end
 tc_track_prob_r85=climada_tc_random_walk(tc_track,basin);
 
 hazard_set_file=[hazard_dir filesep hazname '_hazard_test.mat'];
-centroids=[system_dir filesep 'USFL_MiamiDadeBrowardPalmBeach_centroids.mat'];
+centroids=[climada_global.centroids_dir filesep 'USFL_MiamiDadeBrowardPalmBeach_centroids.mat'];
 
 hazard_prob_r85=climada_tc_hazard_set(tc_track_prob_r85,hazard_set_file,centroids);
 %climada_hazard_stats(hazard_prob_r85);
@@ -62,10 +63,9 @@ ELS_r85=climada_ELS_calc(entity,hazard_prob_r85);
 cam_dataset='rcp45'    
 
 hazard_dir=[climada_global.root_dir filesep 'data' filesep 'hazards'];
-system_dir=[climada_global.root_dir filesep 'data' filesep 'system'];
 cam_data_dir=[climada_global.root_dir '_additional' filesep 'CAM'  filesep 'data' filesep 'track_data_V01' filesep cam_dataset];
 cam_tc_track_dir=[climada_global.root_dir '_additional' filesep 'data' filesep 'tc_tracks' filesep cam_dataset];
-cam_tc_track_file=[climada_global.root_dir '_additional' filesep 'data' filesep 'tc_tracks' filesep cam_dataset filesep 'tc_track_cam.mat'];
+cam_tc_track_file=[cam_tc_track_dir filesep 'tc_track_cam.mat'];
 if ~exist(cam_tc_track_file,'file')
     % read raw CAM data and store as tc_track structure
     % Track file generation.
