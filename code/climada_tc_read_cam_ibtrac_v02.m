@@ -10,6 +10,9 @@ function [tc_track,tc_track_hist_file]=climada_tc_read_cam_ibtrac_v02(ibtrac_fil
 %   Note the V01, since there is a newer data format, you might also
 %   consider using climada_tc_read_cam_database instead
 %
+%   The basic quality check (climada_tc_track_quality_check) gets applied,
+%   mainly to correct the dateline issue.
+%
 %   filter the raw data, namely:
 %   - a VALID record (=node) is required to have lat, lon and either pressure
 %     or windspeed (so recrods with only geographical information are skipped)
@@ -64,6 +67,7 @@ function [tc_track,tc_track_hist_file]=climada_tc_read_cam_ibtrac_v02(ibtrac_fil
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20150128, _prob renamed to _hist
+% David N. Bresch, david.bresch@gmail.com, 20170126, climada_tc_track_quality_check
 %-
 
 % init output
@@ -231,7 +235,9 @@ if ~exist(tc_track_hist_file,'file')
     else
         fprintf(format_str,''); % move carriage to begin of line
     end
-
+    
+    % correct for dateline
+    tc_track=climada_tc_track_quality_check(tc_track);
     
     if check_plot
         figure
